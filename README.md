@@ -47,12 +47,12 @@ uv run sam3-ball-track input.mp4 --sport tennis --output-dir runs/tennis
 The repo includes six short clips for smoke tests and demos:
 
 ```bash
-uv run sam3-ball-track examples/videos/soccer/chelsea-arsenal/clip-3.mp4 --sport soccer --output-dir runs/chelsea-arsenal-clip-3
-uv run sam3-ball-track examples/videos/soccer/portugal-spain/clip-6.mp4 --sport soccer --output-dir runs/portugal-spain-clip-6
-uv run sam3-ball-track examples/videos/soccer/sportsmot-v_dw7LOz17Omg/c067.mp4 --sport soccer --output-dir runs/sportsmot-c067
-uv run sam3-ball-track examples/videos/tennis/game2/Clip6.mp4 --sport tennis --output-dir runs/tennis-game2-clip6
-uv run sam3-ball-track examples/videos/tennis/game3/Clip3.mp4 --sport tennis --output-dir runs/tennis-game3-clip3
-uv run sam3-ball-track examples/videos/tennis/game5/Clip4.mp4 --sport tennis --output-dir runs/tennis-game5-clip4
+uv run sam3-ball-track examples/videos/soccer/clip-1.mp4 --sport soccer --output-dir runs/soccer-clip-1
+uv run sam3-ball-track examples/videos/soccer/clip-2.mp4 --sport soccer --output-dir runs/soccer-clip-2
+uv run sam3-ball-track examples/videos/soccer/clip-3.mp4 --sport soccer --output-dir runs/soccer-clip-3
+uv run sam3-ball-track examples/videos/tennis/clip-1.mp4 --sport tennis --output-dir runs/tennis-clip-1
+uv run sam3-ball-track examples/videos/tennis/clip-2.mp4 --sport tennis --output-dir runs/tennis-clip-2
+uv run sam3-ball-track examples/videos/tennis/clip-3.mp4 --sport tennis --output-dir runs/tennis-clip-3
 ```
 
 ## Outputs

@@ -2,18 +2,22 @@
 
 CLI examples:
     # Soccer: player detections + ViTPose-gated ball selection
-    sam3-ball-track input.mp4 --sport soccer --output-dir runs/soccer
+    uv run sam3-ball-track examples/videos/soccer/clip-1.mp4 \
+        --sport soccer \
+        --output-dir runs/soccer-clip-1
 
     # Tennis: player detections + motion-gated ball selection
-    sam3-ball-track input.mp4 --sport tennis --output-dir runs/tennis
+    uv run sam3-ball-track examples/videos/tennis/clip-1.mp4 \
+        --sport tennis \
+        --output-dir runs/tennis-clip-1
 
 Python example:
     from main import run_tracking
 
     result = run_tracking(
-        input_video="input.mp4",
+        input_video="examples/videos/soccer/clip-1.mp4",
         sport="soccer",
-        output_dir="runs/clip-01",
+        output_dir="runs/soccer-clip-1",
     )
 
 Model access:
