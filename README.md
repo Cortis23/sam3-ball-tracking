@@ -14,7 +14,7 @@ This repo is extracted from the Athletic Intuition research pipeline as a standa
 Install the package, including the vendored SAM3 workspace:
 
 ```bash
-pip install -e .
+uv sync
 ```
 
 SAM3 checkpoints are distributed by Meta through the gated Hugging Face repo `facebook/sam3`. This repo does not distribute model weights.
@@ -30,7 +30,7 @@ hf auth login
 The first run downloads `facebook/sam3/sam3.pt` through Hugging Face Hub into the normal Hugging Face cache. You can prefetch it explicitly with:
 
 ```bash
-huggingface-cli download facebook/sam3 sam3.pt
+uv run huggingface-cli download facebook/sam3 sam3.pt
 ```
 
 Soccer mode also loads ViTPose from the public `usyd-community/vitpose-plus-base` Hugging Face model. Tennis mode does not use pose.
@@ -38,34 +38,22 @@ Soccer mode also loads ViTPose from the public `usyd-community/vitpose-plus-base
 ## Quickstart
 
 ```bash
-sam3-ball-track input.mp4 --sport soccer --output runs/soccer/annotated.mp4
-sam3-ball-track input.mp4 --sport tennis --output runs/tennis/annotated.mp4
-```
-
-To put debug artifacts somewhere explicit:
-
-```bash
-sam3-ball-track input.mp4 \
-  --sport soccer \
-  --output runs/clip-01/selected_ball.mp4 \
-  --debug-dir runs/clip-01
+uv run sam3-ball-track input.mp4 --sport soccer --output-dir runs/soccer
+uv run sam3-ball-track input.mp4 --sport tennis --output-dir runs/tennis
 ```
 
 ## Outputs
 
-Each run writes the selected ball-in-play video to the exact `--output` path.
-
-It also writes debug artifacts under `--debug-dir`. If `--debug-dir` is omitted, the debug directory defaults to the output path without its suffix. For example, `--output runs/soccer/annotated.mp4` uses `runs/soccer/annotated/` as the debug directory.
-
-Debug files:
+Each run writes one directory containing both annotated videos and compressed debug artifacts.
 
 ```text
-all_candidates.mp4       all SAM3 ball-like tracks, colored by candidate
-player_bboxes.pkl        per-frame SAM3 player detections used for drift regions
-pose_data.pkl            per-frame ViTPose results for soccer, empty for tennis
-ball_tracks.pkl          raw SAM3 ball candidate masks by object id
-ball_drift_kills.pkl     drift-kill and SAM3 removal events
-ball_masks.pkl           selected ball-in-play mask per frame
+ball-in-play.mp4         selected ball-in-play track
+all-balls.mp4            all SAM3 ball-like tracks, colored by candidate
+player-bboxes.pkl.zst    per-frame SAM3 player detections used for drift regions
+pose-data.pkl.zst        per-frame ViTPose results for soccer, empty for tennis
+ball-tracks.pkl.zst      raw SAM3 ball candidate masks by object id
+ball-drift-kills.pkl.zst drift-kill and SAM3 removal events
+ball-in-play-masks.pkl.zst selected ball-in-play mask per frame
 ```
 
 Soccer uses ViTPose keypoints to select candidates whose direction changes look like player contact. Tennis uses motion-only changepoints because racket contact is not represented by human body keypoints.

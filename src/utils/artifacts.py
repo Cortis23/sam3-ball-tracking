@@ -2,14 +2,16 @@ import pickle
 from pathlib import Path
 from typing import Any
 
+import zstandard as zstd
 
-def save_pickle(obj: Any, path: str | Path) -> None:
+
+def save_artifact(obj: Any, path: str | Path) -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    with open(p, "wb") as f:
-        pickle.dump(obj, f)
+    blob = zstd.ZstdCompressor(level=3).compress(pickle.dumps(obj))
+    p.write_bytes(blob)
 
 
-def load_pickle(path: str | Path) -> Any:
-    with open(path, "rb") as f:
-        return pickle.load(f)
+def load_artifact(path: str | Path) -> Any:
+    blob = Path(path).read_bytes()
+    return pickle.loads(zstd.ZstdDecompressor().decompress(blob))

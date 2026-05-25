@@ -14,6 +14,7 @@ outputs/
 *.mkv
 *.avi
 *.pkl
+*.pkl.zst
 *.npz
 
 # Keep vendored source, skip generated metadata

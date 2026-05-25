@@ -2,16 +2,10 @@
 
 CLI examples:
     # Soccer: player detections + ViTPose-gated ball selection
-    sam3-ball-track input.mp4 --sport soccer --output runs/soccer/annotated.mp4
+    sam3-ball-track input.mp4 --sport soccer --output-dir runs/soccer
 
     # Tennis: player detections + motion-gated ball selection
-    sam3-ball-track input.mp4 --sport tennis --output runs/tennis/annotated.mp4
-
-    # Write debug artifacts somewhere explicit
-    sam3-ball-track input.mp4 \
-        --sport soccer \
-        --output runs/clip-01/selected_ball.mp4 \
-        --debug-dir runs/clip-01
+    sam3-ball-track input.mp4 --sport tennis --output-dir runs/tennis
 
 Python example:
     from main import run_tracking
@@ -19,8 +13,7 @@ Python example:
     result = run_tracking(
         input_video="input.mp4",
         sport="soccer",
-        output="runs/clip-01/selected_ball.mp4",
-        debug_dir="runs/clip-01",
+        output_dir="runs/clip-01",
     )
 
 Model access:
@@ -32,14 +25,13 @@ Model access:
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
 
 import numpy as np
 
 from ball.render import render_ball_candidates, render_selected_ball
 from ball.select import select_match_ball
 from ball.track import track_ball_candidates, trim_drift_killed_tracks
-from utils.artifacts import save_pickle
+from utils.artifacts import save_artifact
 from utils.video import Video
 from vision.players import detect_player_bboxes, mask_centroid_inside_any_bbox
 from vision.pose import estimate_poses
@@ -47,43 +39,46 @@ from vision.pose import estimate_poses
 
 @dataclass(frozen=True)
 class TrackingResult:
-    player_bboxes: Dict[int, Dict[int, np.ndarray]]
-    pose_data: Dict[int, Dict[int, dict]]
-    ball_tracks: Dict[int, Dict[int, np.ndarray]]
+    output_dir: Path
+    ball_in_play_video: Path
+    all_balls_video: Path
+    player_bboxes: dict[int, dict[int, np.ndarray]]
+    pose_data: dict[int, dict[int, dict]]
+    ball_tracks: dict[int, dict[int, np.ndarray]]
     ball_drift_kills: list
-    ball_masks: Dict[int, dict]
+    ball_masks: dict[int, dict]
 
 
 def run_tracking(
     input_video: str | Path,
     sport: str,
-    output: str | Path,
-    debug_dir: str | Path | None = None,
+    output_dir: str | Path,
     player_confidence: float = 0.5,
 ) -> TrackingResult:
     sport_module = _sport_module(sport)
     video = Video.open(input_video)
     segment = video.full_segment()
 
-    if debug_dir is None:
-        debug_dir = Path(output).with_suffix("")
-    debug_path = Path(debug_dir)
-    debug_path.mkdir(parents=True, exist_ok=True)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    ball_in_play_video = output_path / "ball-in-play.mp4"
+    all_balls_video = output_path / "all-balls.mp4"
 
     print(f"Input: {video.path}")
     print(f"Video: {video.num_frames} frames, {video.fps:.2f} fps, {video.width}x{video.height}")
     print(f"Sport: {sport}")
+    print(f"Output dir: {output_path}")
 
     print("\nStep 1/5: detecting players")
     player_bboxes = detect_player_bboxes(video, confidence_threshold=player_confidence)
-    save_pickle(player_bboxes, debug_path / "player_bboxes.pkl")
+    save_artifact(player_bboxes, output_path / "player-bboxes.pkl.zst")
 
     print("\nStep 2/5: estimating pose" if sport_module.REQUIRES_POSE else "\nStep 2/5: skipping pose")
     if sport_module.REQUIRES_POSE:
         pose_data = estimate_poses(video, player_bboxes, segment)
     else:
         pose_data = {}
-    save_pickle(pose_data, debug_path / "pose_data.pkl")
+    save_artifact(pose_data, output_path / "pose-data.pkl.zst")
 
     def is_attached_to_player(ball_mask: np.ndarray, frame_idx: int) -> bool:
         return mask_centroid_inside_any_bbox(ball_mask, frame_idx, player_bboxes)
@@ -94,8 +89,8 @@ def run_tracking(
         segment,
         is_attached_to_player=is_attached_to_player,
     )
-    save_pickle(ball_tracks, debug_path / "ball_tracks.pkl")
-    save_pickle(drift_kills, debug_path / "ball_drift_kills.pkl")
+    save_artifact(ball_tracks, output_path / "ball-tracks.pkl.zst")
+    save_artifact(drift_kills, output_path / "ball-drift-kills.pkl.zst")
 
     print("\nStep 4/5: selecting ball in play")
     selection_tracks = trim_drift_killed_tracks(ball_tracks, drift_kills)
@@ -105,13 +100,16 @@ def run_tracking(
         video.num_frames,
         compute_changepoints=sport_module.compute_changepoints,
     )
-    save_pickle(ball_masks, debug_path / "ball_masks.pkl")
+    save_artifact(ball_masks, output_path / "ball-in-play-masks.pkl.zst")
 
     print("\nStep 5/5: rendering outputs")
-    render_ball_candidates(video, segment, str(debug_path / "all_candidates.mp4"), ball_tracks, drift_kills)
-    render_selected_ball(video, segment, str(output), ball_masks, ball_tracks)
+    render_ball_candidates(video, segment, str(all_balls_video), ball_tracks, drift_kills)
+    render_selected_ball(video, segment, str(ball_in_play_video), ball_masks, ball_tracks)
 
     return TrackingResult(
+        output_dir=output_path,
+        ball_in_play_video=ball_in_play_video,
+        all_balls_video=all_balls_video,
         player_bboxes=player_bboxes,
         pose_data=pose_data,
         ball_tracks=ball_tracks,
@@ -127,11 +125,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("input", help="Input video path")
     parser.add_argument("--sport", choices=["soccer", "tennis"], required=True)
-    parser.add_argument("--output", required=True, help="Annotated selected-ball output mp4")
     parser.add_argument(
-        "--debug-dir",
-        default=None,
-        help="Directory for all-candidates render and pickle artifacts. Defaults beside output.",
+        "--output-dir",
+        required=True,
+        help="Directory for ball-in-play.mp4, all-balls.mp4, and compressed artifacts.",
     )
     parser.add_argument(
         "--player-confidence",
@@ -147,8 +144,7 @@ def main() -> None:
     run_tracking(
         input_video=args.input,
         sport=args.sport,
-        output=Path(args.output),
-        debug_dir=args.debug_dir,
+        output_dir=args.output_dir,
         player_confidence=args.player_confidence,
     )
 
