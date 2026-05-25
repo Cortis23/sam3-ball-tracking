@@ -1,5 +1,3 @@
-"""Tennis-specific ball-in-play scoring."""
-
 from typing import Dict
 
 import numpy as np

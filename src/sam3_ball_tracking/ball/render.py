@@ -1,5 +1,3 @@
-"""Ball-tracker debug renders."""
-
 from typing import Dict, Optional
 
 import cv2

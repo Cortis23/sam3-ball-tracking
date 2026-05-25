@@ -1,8 +1,3 @@
-"""ViTPose estimation.
-
-Runs ViTPose on track bboxes to get per-player body keypoints.
-"""
-
 from typing import Dict, List, Optional, Tuple
 
 import cv2

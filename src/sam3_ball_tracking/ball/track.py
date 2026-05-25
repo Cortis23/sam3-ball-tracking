@@ -1,5 +1,3 @@
-"""SAM3 multi-track ball candidate generation with drift kill."""
-
 import concurrent.futures
 from collections import defaultdict, deque
 from typing import Callable, Dict, List, Optional, Tuple

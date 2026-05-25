@@ -1,5 +1,3 @@
-"""Pose estimation from per-frame player boxes."""
-
 from typing import Dict
 
 import numpy as np

@@ -1,13 +1,3 @@
-"""
-Standalone ViTPose image processor — no transformers dependency.
-
-Handles preprocessing (affine transform + normalize) and post-processing
-(heatmaps → keypoint coordinates via DARK unbiased data processing).
-
-Ported verbatim from:
-  transformers/models/vitpose/image_processing_vitpose.py
-"""
-
 import itertools
 import math
 from typing import Optional, Union

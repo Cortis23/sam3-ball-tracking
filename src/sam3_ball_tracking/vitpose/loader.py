@@ -1,10 +1,3 @@
-"""Standalone ViTPose loader — drop-in replacement for transformers ViTPose.
-
-Usage:
-    from sam3_ball_tracking.vitpose.loader import load_vitpose_model
-    processor, model = load_vitpose_model()
-"""
-
 import json
 
 from safetensors.torch import load_file

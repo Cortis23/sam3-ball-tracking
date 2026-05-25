@@ -1,5 +1,3 @@
-"""End-to-end single-video ball-in-play tracking."""
-
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict

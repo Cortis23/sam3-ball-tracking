@@ -1,5 +1,3 @@
-"""Player detections used for ball drift suppression and optional pose."""
-
 from typing import Dict
 
 import numpy as np

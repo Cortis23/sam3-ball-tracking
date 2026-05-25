@@ -1,14 +1,3 @@
-"""
-Standalone ViTPose model — pure PyTorch, no transformers dependency.
-
-Module hierarchy matches the HuggingFace state dict keys exactly so that
-weights can be loaded with model.load_state_dict() directly.
-
-Ported from:
-  transformers/models/vitpose_backbone/modeling_vitpose_backbone.py
-  transformers/models/vitpose/modeling_vitpose.py
-"""
-
 from dataclasses import dataclass
 from typing import Optional
 

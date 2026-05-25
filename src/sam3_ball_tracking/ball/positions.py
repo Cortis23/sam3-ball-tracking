@@ -1,5 +1,3 @@
-"""Derive per-frame ball centroids from selected ball masks."""
-
 from typing import Dict, Optional
 
 import numpy as np

@@ -1,5 +1,3 @@
-"""Ball track centroid utilities."""
-
 from typing import Dict, Optional
 
 import numpy as np

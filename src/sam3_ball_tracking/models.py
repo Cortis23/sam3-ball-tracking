@@ -1,5 +1,3 @@
-"""Cached model loaders."""
-
 from pathlib import Path
 from typing import Any, Optional, Tuple
 

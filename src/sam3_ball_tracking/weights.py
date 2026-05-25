@@ -1,5 +1,3 @@
-"""Model weight paths."""
-
 import os
 from pathlib import Path
 

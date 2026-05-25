@@ -1,5 +1,3 @@
-"""Deterministic ball-in-play selection from SAM3 ball candidates."""
-
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np

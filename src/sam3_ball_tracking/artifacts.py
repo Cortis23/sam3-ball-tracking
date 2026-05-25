@@ -1,5 +1,3 @@
-"""Local artifact helpers."""
-
 import pickle
 from pathlib import Path
 from typing import Any
