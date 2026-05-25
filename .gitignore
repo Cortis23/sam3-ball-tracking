@@ -19,3 +19,8 @@ outputs/
 
 # Keep vendored source, skip generated metadata
 *.egg-info/
+
+# Curated example videos are part of the public repo.
+!examples/
+!examples/videos/
+!examples/videos/**/*.mp4
