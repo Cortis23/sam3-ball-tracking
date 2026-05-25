@@ -7,6 +7,7 @@ import numpy as np
 ANGLE_THRESHOLD = 30.0
 SPEED_THRESHOLD = 3.0
 NMS_WINDOW = 3
+REQUIRES_POSE = False
 
 
 def compute_changepoints(

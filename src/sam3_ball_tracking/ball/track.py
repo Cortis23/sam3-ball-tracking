@@ -83,8 +83,8 @@ class LazyFrameLoader:
 def track_ball_candidates(
     video: Video,
     segment: Segment,
+    is_attached_to_player: Callable[[np.ndarray, int], bool],
     prompt: str = "ball",
-    is_attached_to_player: Optional[Callable[[np.ndarray, int], bool]] = None,
 ) -> Tuple[Dict[int, Dict[int, np.ndarray]], List[dict]]:
     """Run SAM3 per-frame to detect and track all ball-like objects."""
     total_frames = segment.end - segment.start
@@ -116,7 +116,7 @@ def track_ball_candidates(
 
     predictor = get_sam3_predictor()
     model = predictor.model
-    model.drift_kill_fn = drift_kill_fn if is_attached_to_player is not None else None
+    model.drift_kill_fn = drift_kill_fn
     model.hotstart_delay = 0
 
     with (
@@ -168,9 +168,8 @@ def track_ball_candidates(
                 mask = masks[i].copy()
                 if mask.any():
                     tracks.setdefault(obj_id, {})[frame_idx] = mask
-                    if is_attached_to_player is not None:
-                        attached_history[obj_id].append(is_attached_to_player(mask, frame_idx))
-                elif is_attached_to_player is not None:
+                    attached_history[obj_id].append(is_attached_to_player(mask, frame_idx))
+                else:
                     attached_history[obj_id].append(False)
 
     for obj_id, frames in sorted(tracks.items()):

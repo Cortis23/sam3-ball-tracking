@@ -7,6 +7,7 @@ import numpy as np
 ANGLE_THRESHOLD = 30.0
 CONTACT_THRESHOLD = 10.0
 KP_CONFIDENCE = 0.3
+REQUIRES_POSE = True
 
 
 def compute_changepoints(

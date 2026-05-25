@@ -49,8 +49,8 @@ def run_tracking(
     player_bboxes = detect_player_bboxes(video, confidence_threshold=player_confidence)
     save_pickle(player_bboxes, debug_path / "player_bboxes.pkl")
 
-    print("\nStep 2/5: estimating pose" if sport == "soccer" else "\nStep 2/5: skipping pose")
-    if sport == "soccer":
+    print("\nStep 2/5: estimating pose" if sport_module.REQUIRES_POSE else "\nStep 2/5: skipping pose")
+    if sport_module.REQUIRES_POSE:
         pose_data = estimate_poses(video, player_bboxes, segment)
     else:
         pose_data = {}
