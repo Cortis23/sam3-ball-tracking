@@ -2,14 +2,10 @@
 
 CLI examples:
     # Soccer: player detections + ViTPose-gated ball selection
-    uv run sam3-ball-track examples/videos/soccer/clip-1.mp4 \
-        --sport soccer \
-        --output-dir runs/soccer-clip-1
+    uv run sam3-ball-track examples/videos/soccer/clip-1.mp4 --sport soccer
 
     # Tennis: player detections + motion-gated ball selection
-    uv run sam3-ball-track examples/videos/tennis/clip-1.mp4 \
-        --sport tennis \
-        --output-dir runs/tennis-clip-1
+    uv run sam3-ball-track examples/videos/tennis/clip-1.mp4 --sport tennis
 
 Python example:
     from main import run_tracking
@@ -17,8 +13,8 @@ Python example:
     result = run_tracking(
         input_video="examples/videos/soccer/clip-1.mp4",
         sport="soccer",
-        output_dir="runs/soccer-clip-1",
     )
+    print(result.result_dir)
 
 Model access:
     SAM3 weights are downloaded through Hugging Face Hub on first use. Request
@@ -28,7 +24,9 @@ Model access:
 
 import argparse
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+import re
 
 import numpy as np
 
@@ -43,7 +41,7 @@ from vision.pose import estimate_poses
 
 @dataclass(frozen=True)
 class TrackingResult:
-    output_dir: Path
+    result_dir: Path
     ball_in_play_video: Path
     all_balls_video: Path
     player_bboxes: dict[int, dict[int, np.ndarray]]
@@ -56,33 +54,31 @@ class TrackingResult:
 def run_tracking(
     input_video: str | Path,
     sport: str,
-    output_dir: str | Path,
     player_confidence: float = 0.5,
 ) -> TrackingResult:
     sport_module = _sport_module(sport)
     video = Video.open(input_video)
     segment = video.full_segment()
 
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-    ball_in_play_video = output_path / "ball-in-play.mp4"
-    all_balls_video = output_path / "all-balls.mp4"
+    result_path = _create_result_dir(input_video, sport)
+    ball_in_play_video = result_path / "ball-in-play.mp4"
+    all_balls_video = result_path / "all-balls.mp4"
 
     print(f"Input: {video.path}")
     print(f"Video: {video.num_frames} frames, {video.fps:.2f} fps, {video.width}x{video.height}")
     print(f"Sport: {sport}")
-    print(f"Output dir: {output_path}")
+    print(f"Result dir: {result_path}")
 
     print("\nStep 1/5: detecting players")
     player_bboxes = detect_player_bboxes(video, confidence_threshold=player_confidence)
-    save_artifact(player_bboxes, output_path / "player-bboxes.pkl.zst")
+    save_artifact(player_bboxes, result_path / "player-bboxes.pkl.zst")
 
     print("\nStep 2/5: estimating pose" if sport_module.REQUIRES_POSE else "\nStep 2/5: skipping pose")
     if sport_module.REQUIRES_POSE:
         pose_data = estimate_poses(video, player_bboxes, segment)
     else:
         pose_data = {}
-    save_artifact(pose_data, output_path / "pose-data.pkl.zst")
+    save_artifact(pose_data, result_path / "pose-data.pkl.zst")
 
     def is_attached_to_player(ball_mask: np.ndarray, frame_idx: int) -> bool:
         return mask_centroid_inside_any_bbox(ball_mask, frame_idx, player_bboxes)
@@ -93,8 +89,8 @@ def run_tracking(
         segment,
         is_attached_to_player=is_attached_to_player,
     )
-    save_artifact(ball_tracks, output_path / "ball-tracks.pkl.zst")
-    save_artifact(drift_kills, output_path / "ball-drift-kills.pkl.zst")
+    save_artifact(ball_tracks, result_path / "ball-tracks.pkl.zst")
+    save_artifact(drift_kills, result_path / "ball-drift-kills.pkl.zst")
 
     print("\nStep 4/5: selecting ball in play")
     selection_tracks = trim_drift_killed_tracks(ball_tracks, drift_kills)
@@ -104,14 +100,14 @@ def run_tracking(
         video.num_frames,
         compute_changepoints=sport_module.compute_changepoints,
     )
-    save_artifact(ball_masks, output_path / "ball-in-play-masks.pkl.zst")
+    save_artifact(ball_masks, result_path / "ball-in-play-masks.pkl.zst")
 
     print("\nStep 5/5: rendering outputs")
     render_ball_candidates(video, segment, str(all_balls_video), ball_tracks, drift_kills)
     render_selected_ball(video, segment, str(ball_in_play_video), ball_masks, ball_tracks)
 
     return TrackingResult(
-        output_dir=output_path,
+        result_dir=result_path,
         ball_in_play_video=ball_in_play_video,
         all_balls_video=all_balls_video,
         player_bboxes=player_bboxes,
@@ -130,11 +126,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("input", help="Input video path")
     parser.add_argument("--sport", choices=["soccer", "tennis"], required=True)
     parser.add_argument(
-        "--output-dir",
-        required=True,
-        help="Directory for ball-in-play.mp4, all-balls.mp4, and compressed artifacts.",
-    )
-    parser.add_argument(
         "--player-confidence",
         type=float,
         default=0.5,
@@ -148,9 +139,23 @@ def main() -> None:
     run_tracking(
         input_video=args.input,
         sport=args.sport,
-        output_dir=args.output_dir,
         player_confidence=args.player_confidence,
     )
+
+
+def _create_result_dir(input_video: str | Path, sport: str) -> Path:
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    clip_name = _slug(Path(input_video).stem)
+    result_path = Path("results") / f"{timestamp}-{sport}-{clip_name}"
+    result_path.mkdir(parents=True, exist_ok=False)
+    return result_path
+
+
+def _slug(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.strip().lower()).strip("-")
+    if not slug:
+        raise ValueError("Input video must have a non-empty file stem")
+    return slug
 
 
 def _sport_module(sport: str):

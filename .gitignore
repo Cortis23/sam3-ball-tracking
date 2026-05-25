@@ -8,6 +8,7 @@ __pycache__/
 # Local model/data artifacts
 weights/
 runs/
+results/
 outputs/
 *.mp4
 *.mov

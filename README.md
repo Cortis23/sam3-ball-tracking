@@ -38,8 +38,8 @@ Soccer mode also loads ViTPose from the public `usyd-community/vitpose-plus-base
 ## Quickstart
 
 ```bash
-uv run sam3-ball-track input.mp4 --sport soccer --output-dir runs/soccer
-uv run sam3-ball-track input.mp4 --sport tennis --output-dir runs/tennis
+uv run sam3-ball-track input.mp4 --sport soccer
+uv run sam3-ball-track input.mp4 --sport tennis
 ```
 
 ## Example Videos
@@ -47,17 +47,17 @@ uv run sam3-ball-track input.mp4 --sport tennis --output-dir runs/tennis
 The repo includes six short clips for smoke tests and demos:
 
 ```bash
-uv run sam3-ball-track examples/videos/soccer/clip-1.mp4 --sport soccer --output-dir runs/soccer-clip-1
-uv run sam3-ball-track examples/videos/soccer/clip-2.mp4 --sport soccer --output-dir runs/soccer-clip-2
-uv run sam3-ball-track examples/videos/soccer/clip-3.mp4 --sport soccer --output-dir runs/soccer-clip-3
-uv run sam3-ball-track examples/videos/tennis/clip-1.mp4 --sport tennis --output-dir runs/tennis-clip-1
-uv run sam3-ball-track examples/videos/tennis/clip-2.mp4 --sport tennis --output-dir runs/tennis-clip-2
-uv run sam3-ball-track examples/videos/tennis/clip-3.mp4 --sport tennis --output-dir runs/tennis-clip-3
+uv run sam3-ball-track examples/videos/soccer/clip-1.mp4 --sport soccer
+uv run sam3-ball-track examples/videos/soccer/clip-2.mp4 --sport soccer
+uv run sam3-ball-track examples/videos/soccer/clip-3.mp4 --sport soccer
+uv run sam3-ball-track examples/videos/tennis/clip-1.mp4 --sport tennis
+uv run sam3-ball-track examples/videos/tennis/clip-2.mp4 --sport tennis
+uv run sam3-ball-track examples/videos/tennis/clip-3.mp4 --sport tennis
 ```
 
 ## Outputs
 
-Each run writes one directory containing both annotated videos and compressed debug artifacts.
+Each run writes one directory under `results/` with the form `results/<timestamp>-<sport>-<clip-name>/`. That directory contains both annotated videos and compressed debug artifacts.
 
 ```text
 ball-in-play.mp4         selected ball-in-play track
