@@ -11,13 +11,21 @@ This repo is extracted from the Athletic Intuition research pipeline as a standa
 
 ## Setup
 
+Requirements:
+
+- NVIDIA GPU with CUDA
+- Python 3.11+
+- `uv`
+- `ffmpeg` on `PATH`
+- Hugging Face access to `facebook/sam3`
+
 Install the package, including the vendored SAM3 workspace:
 
 ```bash
 uv sync
 ```
 
-SAM3 checkpoints are distributed by Meta through the gated Hugging Face repo `facebook/sam3`. This repo does not distribute model weights.
+SAM3 code in `sam3/` is Meta's SAM3 code and is covered by Meta's SAM License. The ball-tracking code in `src/` is MIT licensed. SAM3 checkpoints are distributed by Meta through the gated Hugging Face repo `facebook/sam3`; this repo does not distribute model weights.
 
 1. Request access at https://huggingface.co/facebook/sam3.
 2. Create a Hugging Face access token.
@@ -34,6 +42,8 @@ uv run huggingface-cli download facebook/sam3 sam3.pt
 ```
 
 Soccer mode also loads ViTPose from the public `usyd-community/vitpose-plus-base` Hugging Face model. Tennis mode does not use pose.
+
+The first run can take a while because it loads large model dependencies and downloads gated weights.
 
 ## Quickstart
 

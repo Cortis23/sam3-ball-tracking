@@ -205,6 +205,9 @@ examples/videos/tennis/clip-1.mp4 ... clip-3.mp4
 
 Include SAM3 model access note:
 
+- requires an NVIDIA CUDA GPU and `ffmpeg`
+- SAM3 code in `sam3/` is Meta's code under Meta's SAM License
+- the ball-tracking code in `src/` is MIT licensed
 - repo does not distribute SAM3 weights
 - request access to `facebook/sam3`
 - authenticate with Hugging Face
@@ -230,6 +233,7 @@ Be direct:
 - crowded scenes can still confuse player proximity logic
 - camera cuts are not deeply modeled in the standalone version
 - soccer pose gate is proximity-based, not true contact understanding
+- CUDA GPU and `ffmpeg` are required
 - first run downloads large torch/SAM3 dependencies and gated weights
 
 ### 11. Future Improvements
