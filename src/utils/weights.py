@@ -1,9 +1,8 @@
-import os
-from pathlib import Path
+from huggingface_hub import hf_hub_download
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[2]
-WEIGHTS_ROOT = Path(os.environ.get("SAM3_BALL_WEIGHTS", PACKAGE_ROOT / "weights"))
+SAM3_REPO_ID = "facebook/sam3"
+SAM3_FILENAME = "sam3.pt"
 
-SAM3_CHECKPOINT = WEIGHTS_ROOT / "sam3.pt"
-VITPOSE_WEIGHTS = WEIGHTS_ROOT / "vitpose-plus-base-wholebody.safetensors"
-VITPOSE_CONFIG = WEIGHTS_ROOT / "vitpose-plus-base-wholebody-config.json"
+
+def resolve_sam3_checkpoint() -> str:
+    return hf_hub_download(repo_id=SAM3_REPO_ID, filename=SAM3_FILENAME)

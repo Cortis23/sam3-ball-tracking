@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
-from utils.weights import SAM3_CHECKPOINT
+from utils.weights import resolve_sam3_checkpoint
 
 _sam3_predictor: Optional[Any] = None
 _sam3_image_model: Optional[Any] = None
@@ -20,7 +20,7 @@ def get_sam3_predictor():
 
         print("Loading SAM3 video predictor...")
         _sam3_predictor = build_sam3_video_predictor(
-            checkpoint_path=str(SAM3_CHECKPOINT),
+            checkpoint_path=resolve_sam3_checkpoint(),
             bpe_path=_sam3_bpe_path(),
         )
         print("SAM3 video predictor loaded.")
@@ -34,7 +34,7 @@ def get_sam3_image_model():
 
         print("Loading SAM3 image model...")
         _sam3_image_model = build_sam3_image_model(
-            checkpoint_path=str(SAM3_CHECKPOINT),
+            checkpoint_path=resolve_sam3_checkpoint(),
             bpe_path=_sam3_bpe_path(),
         )
         print("SAM3 image model loaded.")

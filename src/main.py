@@ -1,3 +1,34 @@
+"""Ball-in-play tracking for one soccer or tennis video.
+
+CLI examples:
+    # Soccer: player detections + ViTPose-gated ball selection
+    sam3-ball-track input.mp4 --sport soccer --output runs/soccer/annotated.mp4
+
+    # Tennis: player detections + motion-gated ball selection
+    sam3-ball-track input.mp4 --sport tennis --output runs/tennis/annotated.mp4
+
+    # Write debug artifacts somewhere explicit
+    sam3-ball-track input.mp4 \
+        --sport soccer \
+        --output runs/clip-01/selected_ball.mp4 \
+        --debug-dir runs/clip-01
+
+Python example:
+    from main import run_tracking
+
+    result = run_tracking(
+        input_video="input.mp4",
+        sport="soccer",
+        output="runs/clip-01/selected_ball.mp4",
+        debug_dir="runs/clip-01",
+    )
+
+Model access:
+    SAM3 weights are downloaded through Hugging Face Hub on first use. Request
+    access to facebook/sam3, run hf auth login once, then run the CLI.
+    ViTPose is loaded from the public usyd-community/vitpose-plus-base model.
+"""
+
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
