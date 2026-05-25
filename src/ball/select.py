@@ -7,14 +7,14 @@ from ball.changepoints import compute_centroids
 
 def select_match_ball(
     tracks: Dict[int, Dict[int, np.ndarray]],
-    pose_data: Dict[int, Dict[int, dict]],
+    selection_context,
     total_frames: int,
     compute_changepoints: Callable,
 ) -> Dict[int, dict]:
     centroids = compute_centroids(tracks)
     touches: Dict[int, List[int]] = {}
     for tid, track_masks in tracks.items():
-        cp = compute_changepoints(centroids[tid], track_masks, pose_data)
+        cp = compute_changepoints(centroids[tid], track_masks, selection_context)
         touches[tid] = sorted(cp.keys())
         print(f"  T{tid}: {len(touches[tid])} selection changepoints")
 

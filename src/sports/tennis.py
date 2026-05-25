@@ -5,13 +5,12 @@ import numpy as np
 ANGLE_THRESHOLD = 30.0
 SPEED_THRESHOLD = 3.0
 NMS_WINDOW = 3
-REQUIRES_POSE = False
 
 
 def compute_changepoints(
     centroids: Dict[int, np.ndarray],
     track_masks: Dict[int, np.ndarray],
-    pose_data: Dict[int, Dict[int, dict]],
+    selection_context,
     nms_window: int = NMS_WINDOW,
 ) -> Dict[int, float]:
     frames = sorted(centroids.keys())

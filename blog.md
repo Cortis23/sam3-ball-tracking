@@ -110,7 +110,7 @@ Explain the common failure: a tiny ball track can latch onto a player, shoe, soc
 Current drift logic:
 
 - detect players with SAM3 prompt `player`
-- keep player bounding boxes
+- keep player bounding boxes and cropped player masks
 - compute ball mask centroid
 - if the centroid sits inside any player box while SAM3 keep-alive has bottomed out for 10 frames, kill the track
 
@@ -118,7 +118,7 @@ Important nuance for the blog: this is not trying to identify the same player. I
 
 Explain why 10 frames is enough: at 25-30 fps, that is roughly a third of a second, long enough to distinguish drift from a momentary overlap.
 
-Potential future note: player masks could replace player boxes for a tighter attachment test.
+The player masks are not used for this drift kill yet; drift suppression stays intentionally coarse because it only needs to identify likely player attachment, not exact contact.
 
 ### 5. Stage 2: Selecting the Ball in Play
 
@@ -138,32 +138,24 @@ This section should stay conceptual before splitting by sport.
 
 ### 6. Soccer Selection
 
-Current soccer selection uses pose-gated changepoints, but explain accurately:
+Soccer selection now uses player-mask-gated changepoints:
 
-- compute angle changes in ball trajectory
+- compute angle changes in each ball candidate trajectory
 - keep large direction changes
-- gate them by proximity to confident player keypoints
+- build a per-frame union of SAM3 player masks
+- dilate the player region by the contact threshold
+- accept ball changepoints whose mask overlaps that dilated player region
 
-Important honesty: this is not currently foot-specific. It uses any confident ViTPose keypoint as a sparse human-proximity signal. That means the blog should not oversell "kick detection" or "foot contact detection" unless we change the implementation.
+Important honesty: this is not kick detection or true contact understanding. It is a player-proximity gate over ball trajectory changepoints. The useful claim is simpler: meaningful soccer ball direction changes often happen near players, and player masks are a more direct proximity signal than sparse pose keypoints for this standalone tracker.
 
-Possible framing:
-
-"For soccer, a useful signal is that meaningful ball direction changes often happen near players. We use pose keypoints as sparse player-contact anchors. A mask-based player proximity gate would be a reasonable simplification and may replace pose in a future iteration."
-
-If we decide to remove pose before publishing, this section should become:
-
-- detect player masks/boxes
-- dilate player regions
-- accept ball changepoints near player regions
-
-Do not write the final blog prose until this decision is settled.
+This is also a good "clean code" point for the post: the same SAM3 player detection step produces boxes for drift suppression and masks for soccer selection/debug rendering.
 
 ### 7. Tennis Selection
 
-Explain why tennis does not use pose:
+Explain why tennis does not use the player proximity gate:
 
-- racket contact occurs away from body keypoints
-- wrist/hand keypoints are too coarse at broadcast resolution
+- racket contact often occurs away from the player's body mask
+- player proximity is less discriminative for tennis than for soccer
 - ball direction/speed changes are cleaner signals
 
 Tennis uses motion-only changepoints:
@@ -186,11 +178,11 @@ uv run sam3-ball-track examples/videos/tennis/clip-1.mp4 --sport tennis
 Explain generated result directory:
 
 ```text
-results/<timestamp>-<sport>-<clip-name>/
+results/<timestamp>-<sport>-<sam-version>-<clip-name>/
   ball-in-play.mp4
   all-balls.mp4
   player-bboxes.pkl.zst
-  pose-data.pkl.zst
+  player-masks.pkl.zst
   ball-tracks.pkl.zst
   ball-drift-kills.pkl.zst
   ball-in-play-masks.pkl.zst
@@ -210,6 +202,7 @@ Include SAM3 model access note:
 - the ball-tracking code in `src/` is MIT licensed
 - repo does not distribute SAM3 weights
 - request access to `facebook/sam3`
+- request access to `facebook/sam3.1` only if using `--sam-version sam3.1`
 - authenticate with Hugging Face
 
 ### 9. What Makes This Different from a Normal Tracker
@@ -232,7 +225,7 @@ Be direct:
 - selection can fail if SAM3 never detects the ball
 - crowded scenes can still confuse player proximity logic
 - camera cuts are not deeply modeled in the standalone version
-- soccer pose gate is proximity-based, not true contact understanding
+- soccer mask gate is proximity-based, not true contact understanding
 - CUDA GPU and `ffmpeg` are required
 - first run downloads large torch/SAM3 dependencies and gated weights
 
@@ -240,7 +233,6 @@ Be direct:
 
 Possible improvements:
 
-- replace soccer pose with player-mask proximity if it performs similarly
 - use SAM3 player masks for drift instead of player boxes
 - add camera-cut segmentation
 - add confidence/score plots for candidate selection
@@ -251,8 +243,8 @@ Possible improvements:
 
 Minimum visuals:
 
-1. `all-balls.mp4` screenshot/GIF: many candidates.
-2. `ball-in-play.mp4` screenshot/GIF: selected track.
+1. `all-balls.mp4` screenshot/GIF: many candidates with differently colored player masks visible.
+2. `ball-in-play.mp4` screenshot/GIF: selected track without player masks.
 3. Architecture diagram showing candidate generation vs selection.
 4. A frame with a drift-killed candidate attached to a player.
 5. A trajectory plot showing changepoints for a selected candidate.
@@ -262,6 +254,7 @@ Optional visuals:
 - side-by-side soccer vs tennis selection logic
 - result directory tree
 - mask centroid / player box drift diagram
+- player-mask dilation / ball-mask overlap diagram for soccer selection
 
 ## Terms to Use Consistently
 
@@ -280,15 +273,13 @@ Avoid overclaiming:
 - do not say "detects kicks" unless we implement foot-specific logic
 - do not say "understands gameplay"
 - do not imply SAM3 alone solves ball tracking
-- do not call pose gating foot contact detection in the current implementation
+- do not call player-mask proximity true contact detection
 
 ## Open Decisions Before Writing
 
-1. Do we keep soccer pose, or replace it with player-mask/player-box proximity?
-2. Do we want player masks in the public implementation now?
-3. Should the blog use soccer or tennis as the primary walkthrough example?
-4. Do we want to include runtime notes, given the ball step may be slower than expected?
-5. Should we mention the full Athletic Intuition pipeline, or keep the post fully standalone?
+1. Should the blog use soccer or tennis as the primary walkthrough example?
+2. Do we want to include runtime notes, given the ball step may be slower than expected?
+3. Should we mention the full Athletic Intuition pipeline, or keep the post fully standalone?
 
 ## Likely Final Post Thesis
 

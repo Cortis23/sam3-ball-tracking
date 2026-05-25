@@ -42,8 +42,6 @@ uv run huggingface-cli download facebook/sam3 sam3.pt
 uv run huggingface-cli download facebook/sam3.1 sam3.1_multiplex.pt
 ```
 
-Soccer mode also loads ViTPose from the public `usyd-community/vitpose-plus-base` Hugging Face model. Tennis mode does not use pose.
-
 The first run can take a while because it loads large model dependencies and downloads gated weights.
 
 ## Quickstart
@@ -75,10 +73,10 @@ Each run writes one directory under `results/` with the form `results/<timestamp
 ball-in-play.mp4         selected ball-in-play track
 all-balls.mp4            all SAM3 ball-like tracks, colored by candidate
 player-bboxes.pkl.zst    per-frame SAM3 player detections used for drift regions
-pose-data.pkl.zst        per-frame ViTPose results for soccer, empty for tennis
+player-masks.pkl.zst     per-frame SAM3 player mask detections
 ball-tracks.pkl.zst      raw SAM3 ball candidate masks by object id
 ball-drift-kills.pkl.zst drift-kill and SAM3 removal events
 ball-in-play-masks.pkl.zst selected ball-in-play mask per frame
 ```
 
-Soccer uses ViTPose keypoints to select candidates whose direction changes look like player contact. Tennis uses motion-only changepoints because racket contact is not represented by human body keypoints.
+Soccer uses SAM3 player masks to select candidates whose direction changes look like player contact. Tennis uses motion-only changepoints.

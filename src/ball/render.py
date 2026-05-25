@@ -7,6 +7,7 @@ from ball.changepoints import compute_centroids
 from ball.positions import derive_ball_positions
 from utils.rendering import render_frames
 from utils.video import Segment, Video
+from vision.players import PlayerMasks
 
 BALL_COLOR = (0, 255, 255)
 TRACK_COLORS = [
@@ -15,6 +16,10 @@ TRACK_COLORS = [
     (200, 0, 130), (100, 200, 0), (255, 100, 0),
 ]
 TRAIL_LENGTH = 100
+PLAYER_MASK_COLORS = [
+    (0, 200, 100), (255, 120, 0), (180, 80, 255), (80, 180, 255),
+    (120, 220, 40), (255, 80, 160), (40, 220, 220), (180, 180, 40),
+]
 
 
 def render_selected_ball(
@@ -64,6 +69,7 @@ def render_ball_candidates(
     output_path: str,
     tracks: Dict[int, Dict[int, np.ndarray]],
     drift_kills: list,
+    player_masks: Optional[PlayerMasks] = None,
 ) -> None:
     centroids = compute_centroids(tracks)
     track_ids = sorted(tracks.keys())
@@ -82,6 +88,8 @@ def render_ball_candidates(
         return TRACK_COLORS[i % len(TRACK_COLORS)]
 
     def draw_frame(frame: np.ndarray, frame_idx: int) -> None:
+        _draw_player_masks(frame, player_masks, frame_idx)
+
         overlay = frame.copy()
         for i, tid in enumerate(track_ids):
             mask = tracks[tid].get(frame_idx)
@@ -125,6 +133,53 @@ def render_ball_candidates(
                 kill_y += 25
 
     render_frames(video, output_path, draw_frame, desc="Rendering ball candidates", segment=segment)
+
+
+def _draw_player_masks(
+    frame: np.ndarray,
+    player_masks: Optional[PlayerMasks],
+    frame_idx: int,
+) -> None:
+    if player_masks is None:
+        return
+
+    detections = player_masks.get(frame_idx, [])
+    if not detections:
+        return
+
+    overlay = frame.copy()
+    has_mask = False
+    for i, det in enumerate(detections):
+        cropped = np.asarray(det["mask"]).astype(bool)
+        if cropped.size == 0:
+            continue
+
+        x1, y1, _, _ = det["box"].astype(int)
+        h, w = cropped.shape[:2]
+        x2 = x1 + w
+        y2 = y1 + h
+
+        dst_x1 = max(0, x1)
+        dst_y1 = max(0, y1)
+        dst_x2 = min(frame.shape[1], x2)
+        dst_y2 = min(frame.shape[0], y2)
+        if dst_x2 <= dst_x1 or dst_y2 <= dst_y1:
+            continue
+
+        src_x1 = dst_x1 - x1
+        src_y1 = dst_y1 - y1
+        src_x2 = src_x1 + (dst_x2 - dst_x1)
+        src_y2 = src_y1 + (dst_y2 - dst_y1)
+        mask = cropped[src_y1:src_y2, src_x1:src_x2]
+        if not mask.any():
+            continue
+
+        color = PLAYER_MASK_COLORS[i % len(PLAYER_MASK_COLORS)]
+        overlay[dst_y1:dst_y2, dst_x1:dst_x2][mask] = color
+        has_mask = True
+
+    if has_mask:
+        cv2.addWeighted(overlay, 0.22, frame, 0.78, 0, frame)
 
 
 def _draw_ball_mask(

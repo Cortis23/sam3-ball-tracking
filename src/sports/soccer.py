@@ -1,17 +1,18 @@
 from typing import Dict
 
+import cv2
 import numpy as np
 
+from vision.players import PlayerMasks, player_mask_union
+
 ANGLE_THRESHOLD = 30.0
-CONTACT_THRESHOLD = 10.0
-KP_CONFIDENCE = 0.3
-REQUIRES_POSE = True
+CONTACT_THRESHOLD = 10
 
 
 def compute_changepoints(
     centroids: Dict[int, np.ndarray],
     track_masks: Dict[int, np.ndarray],
-    pose_data: Dict[int, Dict[int, dict]],
+    player_masks: PlayerMasks,
     nms_window: int = 3,
 ) -> Dict[int, float]:
     frames = sorted(centroids.keys())
@@ -39,7 +40,7 @@ def compute_changepoints(
         mask = track_masks.get(f)
         if mask is None:
             continue
-        if _min_mask_kp_dist(mask, pose_data, f) <= CONTACT_THRESHOLD:
+        if _touches_player_region(mask, player_masks, f):
             gated[f] = a
 
     peaks: Dict[int, float] = {}
@@ -50,20 +51,19 @@ def compute_changepoints(
     return peaks
 
 
-def _min_mask_kp_dist(mask: np.ndarray, pose_data: Dict[int, Dict[int, dict]], frame_idx: int) -> float:
-    if not mask.any():
-        return float("inf")
-    ys, xs = np.where(mask)
-    mask_coords = np.stack([xs, ys], axis=1).astype(np.float32)
-    best = float("inf")
-    for pose in pose_data.get(frame_idx, {}).values():
-        kps = pose["keypoints"]
-        scores = pose["scores"]
-        for idx in range(len(scores)):
-            if scores[idx] < KP_CONFIDENCE:
-                continue
-            kp = kps[idx][:2].astype(np.float32)
-            d = float(np.linalg.norm(mask_coords - kp, axis=1).min())
-            if d < best:
-                best = d
-    return best
+def _touches_player_region(
+    ball_mask: np.ndarray,
+    player_masks: PlayerMasks,
+    frame_idx: int,
+) -> bool:
+    if not ball_mask.any():
+        return False
+
+    players = player_mask_union(player_masks, frame_idx, ball_mask.shape)
+    if players is None or not players.any():
+        return False
+
+    kernel_size = CONTACT_THRESHOLD * 2 + 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+    contact_region = cv2.dilate(players.astype(np.uint8), kernel).astype(bool)
+    return bool(np.any(ball_mask & contact_region))

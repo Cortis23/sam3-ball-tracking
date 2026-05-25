@@ -1,7 +1,7 @@
 """Ball-in-play tracking for one soccer or tennis video.
 
 CLI examples:
-    # Soccer: player detections + ViTPose-gated ball selection
+    # Soccer: player detections + player-mask-gated ball selection
     uv run sam3-ball-track examples/videos/soccer/clip-1.mp4 --sport soccer
 
     # Tennis: player detections + motion-gated ball selection
@@ -19,7 +19,7 @@ Python example:
 Model access:
     SAM3 weights are downloaded through Hugging Face Hub on first use. Request
     access to facebook/sam3 or facebook/sam3.1, run hf auth login once, then
-    run the CLI. ViTPose is loaded from the public usyd-community/vitpose-plus-base model.
+    run the CLI.
 """
 
 import argparse
@@ -35,8 +35,7 @@ from ball.select import select_match_ball
 from ball.track import track_ball_candidates, trim_drift_killed_tracks
 from utils.artifacts import save_artifact
 from utils.video import Video
-from vision.players import detect_player_bboxes, mask_centroid_inside_any_bbox
-from vision.pose import estimate_poses
+from vision.players import detect_players, mask_centroid_inside_any_bbox
 
 
 @dataclass(frozen=True)
@@ -45,7 +44,7 @@ class TrackingResult:
     ball_in_play_video: Path
     all_balls_video: Path
     player_bboxes: dict[int, dict[int, np.ndarray]]
-    pose_data: dict[int, dict[int, dict]]
+    player_masks: dict[int, list[dict]]
     ball_tracks: dict[int, dict[int, np.ndarray]]
     ball_drift_kills: list
     ball_masks: dict[int, dict]
@@ -71,21 +70,15 @@ def run_tracking(
     print(f"SAM version: {sam_version}")
     print(f"Result dir: {result_path}")
 
-    print("\nStep 1/5: detecting players")
-    player_bboxes = detect_player_bboxes(video, confidence_threshold=player_confidence)
+    print("\nStep 1/4: detecting players")
+    player_bboxes, player_masks = detect_players(video, confidence_threshold=player_confidence)
     save_artifact(player_bboxes, result_path / "player-bboxes.pkl.zst")
-
-    print("\nStep 2/5: estimating pose" if sport_module.REQUIRES_POSE else "\nStep 2/5: skipping pose")
-    if sport_module.REQUIRES_POSE:
-        pose_data = estimate_poses(video, player_bboxes, segment)
-    else:
-        pose_data = {}
-    save_artifact(pose_data, result_path / "pose-data.pkl.zst")
+    save_artifact(player_masks, result_path / "player-masks.pkl.zst")
 
     def is_attached_to_player(ball_mask: np.ndarray, frame_idx: int) -> bool:
         return mask_centroid_inside_any_bbox(ball_mask, frame_idx, player_bboxes)
 
-    print("\nStep 3/5: tracking ball candidates")
+    print("\nStep 2/4: tracking ball candidates")
     ball_tracks, drift_kills = track_ball_candidates(
         video,
         segment,
@@ -95,18 +88,25 @@ def run_tracking(
     save_artifact(ball_tracks, result_path / "ball-tracks.pkl.zst")
     save_artifact(drift_kills, result_path / "ball-drift-kills.pkl.zst")
 
-    print("\nStep 4/5: selecting ball in play")
+    print("\nStep 3/4: selecting ball in play")
     selection_tracks = trim_drift_killed_tracks(ball_tracks, drift_kills)
     ball_masks = select_match_ball(
         selection_tracks,
-        pose_data,
+        player_masks,
         video.num_frames,
         compute_changepoints=sport_module.compute_changepoints,
     )
     save_artifact(ball_masks, result_path / "ball-in-play-masks.pkl.zst")
 
-    print("\nStep 5/5: rendering outputs")
-    render_ball_candidates(video, segment, str(all_balls_video), ball_tracks, drift_kills)
+    print("\nStep 4/4: rendering outputs")
+    render_ball_candidates(
+        video,
+        segment,
+        str(all_balls_video),
+        ball_tracks,
+        drift_kills,
+        player_masks=player_masks,
+    )
     render_selected_ball(video, segment, str(ball_in_play_video), ball_masks, ball_tracks)
 
     return TrackingResult(
@@ -114,7 +114,7 @@ def run_tracking(
         ball_in_play_video=ball_in_play_video,
         all_balls_video=all_balls_video,
         player_bboxes=player_bboxes,
-        pose_data=pose_data,
+        player_masks=player_masks,
         ball_tracks=ball_tracks,
         ball_drift_kills=drift_kills,
         ball_masks=ball_masks,
@@ -129,14 +129,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("input", help="Input video path")
     parser.add_argument("--sport", choices=["soccer", "tennis"], required=True)
     parser.add_argument(
-        "--player-confidence",
-        type=float,
-        default=0.5,
-        help="SAM3 confidence threshold for player detections.",
-    )
-    parser.add_argument(
         "--sam-version",
+        nargs="?",
         choices=["sam3", "sam3.1"],
+        const="sam3",
         default="sam3",
         help="SAM video tracker version to use for ball candidates.",
     )
@@ -148,7 +144,6 @@ def main() -> None:
     run_tracking(
         input_video=args.input,
         sport=args.sport,
-        player_confidence=args.player_confidence,
         sam_version=args.sam_version,
     )
 
