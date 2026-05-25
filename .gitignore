@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local model/data artifacts
+weights/
+runs/
+outputs/
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.pkl
+*.npz
+
+# Keep vendored source, skip generated metadata
+*.egg-info/
