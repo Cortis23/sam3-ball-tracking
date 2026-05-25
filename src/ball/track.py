@@ -7,7 +7,7 @@ import torch
 from PIL import Image
 from tqdm import tqdm
 
-from sam3_ball_tracking.video import Segment, Video
+from utils.video import Segment, Video
 
 DRIFT_KILL_LOOKBACK = 10
 
@@ -110,7 +110,7 @@ def track_ball_candidates(
             return True
         return False
 
-    from sam3_ball_tracking.models import get_sam3_predictor
+    from vision.models import get_sam3_predictor
 
     predictor = get_sam3_predictor()
     model = predictor.model

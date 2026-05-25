@@ -24,7 +24,7 @@ dev = [
 ]
 
 [project.scripts]
-sam3-ball-track = "sam3_ball_tracking.cli:main"
+sam3-ball-track = "main:main"
 
 [tool.uv.sources]
 sam3 = { workspace = true, editable = true }
@@ -32,6 +32,15 @@ sam3 = { workspace = true, editable = true }
 [tool.uv.workspace]
 members = ["sam3"]
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ball*", "sports*", "utils*", "vision*"]
+namespaces = true
+
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"

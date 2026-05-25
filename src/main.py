@@ -1,16 +1,17 @@
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 
 import numpy as np
 
-from sam3_ball_tracking.artifacts import save_pickle
-from sam3_ball_tracking.ball.render import render_ball_candidates, render_selected_ball
-from sam3_ball_tracking.ball.select import select_match_ball
-from sam3_ball_tracking.ball.track import track_ball_candidates, trim_drift_killed_tracks
-from sam3_ball_tracking.players import detect_player_bboxes, mask_centroid_inside_any_bbox
-from sam3_ball_tracking.pose import estimate_poses
-from sam3_ball_tracking.video import Video
+from ball.render import render_ball_candidates, render_selected_ball
+from ball.select import select_match_ball
+from ball.track import track_ball_candidates, trim_drift_killed_tracks
+from utils.artifacts import save_pickle
+from utils.video import Video
+from vision.players import detect_player_bboxes, mask_centroid_inside_any_bbox
+from vision.pose import estimate_poses
 
 
 @dataclass(frozen=True)
@@ -29,7 +30,6 @@ def run_tracking(
     debug_dir: str | Path | None = None,
     player_confidence: float = 0.5,
 ) -> TrackingResult:
-    """Run the public single-video tracking pipeline."""
     sport_module = _sport_module(sport)
     video = Video.open(input_video)
     segment = video.full_segment()
@@ -89,13 +89,50 @@ def run_tracking(
     )
 
 
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="sam3-ball-track",
+        description="Track the ball in play in soccer or tennis broadcast video.",
+    )
+    parser.add_argument("input", help="Input video path")
+    parser.add_argument("--sport", choices=["soccer", "tennis"], required=True)
+    parser.add_argument("--output", required=True, help="Annotated selected-ball output mp4")
+    parser.add_argument(
+        "--debug-dir",
+        default=None,
+        help="Directory for all-candidates render and pickle artifacts. Defaults beside output.",
+    )
+    parser.add_argument(
+        "--player-confidence",
+        type=float,
+        default=0.5,
+        help="SAM3 confidence threshold for player detections.",
+    )
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    run_tracking(
+        input_video=args.input,
+        sport=args.sport,
+        output=Path(args.output),
+        debug_dir=args.debug_dir,
+        player_confidence=args.player_confidence,
+    )
+
+
 def _sport_module(sport: str):
     if sport == "soccer":
-        from sam3_ball_tracking.sports import soccer
+        from sports import soccer
 
         return soccer
     if sport == "tennis":
-        from sam3_ball_tracking.sports import tennis
+        from sports import tennis
 
         return tennis
     raise ValueError(f"Unsupported sport: {sport}")
+
+
+if __name__ == "__main__":
+    main()

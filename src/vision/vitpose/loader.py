@@ -2,9 +2,9 @@ import json
 
 from safetensors.torch import load_file
 
-from sam3_ball_tracking.vitpose.model import VitPoseConfig, VitPoseForPoseEstimation
-from sam3_ball_tracking.vitpose.processor import VitPoseProcessor
-from sam3_ball_tracking.weights import WEIGHTS_ROOT
+from vision.vitpose.model import VitPoseConfig, VitPoseForPoseEstimation
+from vision.vitpose.processor import VitPoseProcessor
+from utils.weights import WEIGHTS_ROOT
 
 WEIGHTS_PATH = WEIGHTS_ROOT / "vitpose-plus-base-wholebody.safetensors"
 CONFIG_PATH = WEIGHTS_ROOT / "vitpose-plus-base-wholebody-config.json"

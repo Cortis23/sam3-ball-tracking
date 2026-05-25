@@ -3,10 +3,10 @@ from typing import Dict, Optional
 import cv2
 import numpy as np
 
-from sam3_ball_tracking.ball.changepoints import compute_centroids
-from sam3_ball_tracking.ball.positions import derive_ball_positions
-from sam3_ball_tracking.rendering import render_frames
-from sam3_ball_tracking.video import Segment, Video
+from ball.changepoints import compute_centroids
+from ball.positions import derive_ball_positions
+from utils.rendering import render_frames
+from utils.video import Segment, Video
 
 BALL_COLOR = (0, 255, 255)
 TRACK_COLORS = [

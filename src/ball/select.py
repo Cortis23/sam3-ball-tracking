@@ -2,7 +2,7 @@ from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 
-from sam3_ball_tracking.ball.changepoints import compute_centroids
+from ball.changepoints import compute_centroids
 
 
 def select_match_ball(

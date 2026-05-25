@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
-from sam3_ball_tracking.weights import SAM3_CHECKPOINT
+from utils.weights import SAM3_CHECKPOINT
 
 _sam3_predictor: Optional[Any] = None
 _sam3_image_model: Optional[Any] = None
@@ -44,7 +44,7 @@ def get_sam3_image_model():
 def get_vitpose_model():
     global _vitpose_model
     if _vitpose_model is None:
-        from sam3_ball_tracking.vitpose.loader import load_vitpose_model
+        from vision.vitpose.loader import load_vitpose_model
 
         _vitpose_model = load_vitpose_model()
     return _vitpose_model

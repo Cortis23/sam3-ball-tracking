@@ -2,8 +2,8 @@ from typing import Dict
 
 import numpy as np
 
-from sam3_ball_tracking.detect import detect
-from sam3_ball_tracking.video import Video
+from vision.detect import detect
+from utils.video import Video
 
 
 def detect_player_bboxes(

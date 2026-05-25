@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from sam3_ball_tracking.video import Segment, Video
+from utils.video import Segment, Video
 
 FFMPEG_PATH = "ffmpeg"
 

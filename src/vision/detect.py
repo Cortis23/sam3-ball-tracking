@@ -5,7 +5,7 @@ import torch
 from PIL import Image
 from tqdm import tqdm
 
-from sam3_ball_tracking.video import Video
+from utils.video import Video
 
 
 def detect(
@@ -15,7 +15,7 @@ def detect(
     keep_masks: bool = False,
 ) -> Tuple[Dict[int, np.ndarray], Optional[Dict[int, List[dict]]]]:
     from sam3.model.sam3_image_processor import Sam3Processor
-    from sam3_ball_tracking.models import get_sam3_image_model
+    from vision.models import get_sam3_image_model
 
     model = get_sam3_image_model()
     processor = Sam3Processor(model, confidence_threshold=confidence_threshold)
