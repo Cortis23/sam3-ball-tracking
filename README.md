@@ -17,7 +17,7 @@ Requirements:
 - Python 3.11+
 - `uv`
 - `ffmpeg` on `PATH`
-- Hugging Face access to `facebook/sam3`
+- Hugging Face access to `facebook/sam3`; `facebook/sam3.1` is also required for `--sam-version sam3.1`
 
 Install the package, including the vendored SAM3 workspace:
 
@@ -25,9 +25,9 @@ Install the package, including the vendored SAM3 workspace:
 uv sync
 ```
 
-SAM3 code in `sam3/` is Meta's SAM3 code and is covered by Meta's SAM License. The ball-tracking code in `src/` is MIT licensed. SAM3 checkpoints are distributed by Meta through the gated Hugging Face repo `facebook/sam3`; this repo does not distribute model weights.
+SAM3 code in `sam3/` is Meta's SAM3 code and is covered by Meta's SAM License. The ball-tracking code in `src/` is MIT licensed. SAM3 checkpoints are distributed by Meta through the gated Hugging Face repos `facebook/sam3` and `facebook/sam3.1`; this repo does not distribute model weights.
 
-1. Request access at https://huggingface.co/facebook/sam3.
+1. Request access at https://huggingface.co/facebook/sam3. For SAM3.1, also request access at https://huggingface.co/facebook/sam3.1.
 2. Create a Hugging Face access token.
 3. Log in once on the machine that will run inference:
 
@@ -35,10 +35,11 @@ SAM3 code in `sam3/` is Meta's SAM3 code and is covered by Meta's SAM License. T
 hf auth login
 ```
 
-The first run downloads `facebook/sam3/sam3.pt` through Hugging Face Hub into the normal Hugging Face cache. You can prefetch it explicitly with:
+The first run downloads SAM checkpoints through Hugging Face Hub into the normal Hugging Face cache. SAM3.1 mode uses the SAM3.1 video checkpoint for ball tracking and still uses the SAM3 image checkpoint for player detection. You can prefetch them explicitly with:
 
 ```bash
 uv run huggingface-cli download facebook/sam3 sam3.pt
+uv run huggingface-cli download facebook/sam3.1 sam3.1_multiplex.pt
 ```
 
 Soccer mode also loads ViTPose from the public `usyd-community/vitpose-plus-base` Hugging Face model. Tennis mode does not use pose.
@@ -50,6 +51,7 @@ The first run can take a while because it loads large model dependencies and dow
 ```bash
 uv run sam3-ball-track input.mp4 --sport soccer
 uv run sam3-ball-track input.mp4 --sport tennis
+uv run sam3-ball-track input.mp4 --sport soccer --sam-version sam3.1
 ```
 
 ## Example Videos
@@ -67,7 +69,7 @@ uv run sam3-ball-track examples/videos/tennis/clip-3.mp4 --sport tennis
 
 ## Outputs
 
-Each run writes one directory under `results/` with the form `results/<timestamp>-<sport>-<clip-name>/`. That directory contains both annotated videos and compressed debug artifacts.
+Each run writes one directory under `results/` with the form `results/<timestamp>-<sport>-<sam-version>-<clip-name>/`. That directory contains both annotated videos and compressed debug artifacts.
 
 ```text
 ball-in-play.mp4         selected ball-in-play track

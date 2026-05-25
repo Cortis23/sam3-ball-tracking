@@ -18,8 +18,8 @@ Python example:
 
 Model access:
     SAM3 weights are downloaded through Hugging Face Hub on first use. Request
-    access to facebook/sam3, run hf auth login once, then run the CLI.
-    ViTPose is loaded from the public usyd-community/vitpose-plus-base model.
+    access to facebook/sam3 or facebook/sam3.1, run hf auth login once, then
+    run the CLI. ViTPose is loaded from the public usyd-community/vitpose-plus-base model.
 """
 
 import argparse
@@ -55,18 +55,20 @@ def run_tracking(
     input_video: str | Path,
     sport: str,
     player_confidence: float = 0.5,
+    sam_version: str = "sam3",
 ) -> TrackingResult:
     sport_module = _sport_module(sport)
     video = Video.open(input_video)
     segment = video.full_segment()
 
-    result_path = _create_result_dir(input_video, sport)
+    result_path = _create_result_dir(input_video, sport, sam_version)
     ball_in_play_video = result_path / "ball-in-play.mp4"
     all_balls_video = result_path / "all-balls.mp4"
 
     print(f"Input: {video.path}")
     print(f"Video: {video.num_frames} frames, {video.fps:.2f} fps, {video.width}x{video.height}")
     print(f"Sport: {sport}")
+    print(f"SAM version: {sam_version}")
     print(f"Result dir: {result_path}")
 
     print("\nStep 1/5: detecting players")
@@ -88,6 +90,7 @@ def run_tracking(
         video,
         segment,
         is_attached_to_player=is_attached_to_player,
+        sam_version=sam_version,
     )
     save_artifact(ball_tracks, result_path / "ball-tracks.pkl.zst")
     save_artifact(drift_kills, result_path / "ball-drift-kills.pkl.zst")
@@ -131,6 +134,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.5,
         help="SAM3 confidence threshold for player detections.",
     )
+    parser.add_argument(
+        "--sam-version",
+        choices=["sam3", "sam3.1"],
+        default="sam3",
+        help="SAM video tracker version to use for ball candidates.",
+    )
     return parser
 
 
@@ -140,13 +149,15 @@ def main() -> None:
         input_video=args.input,
         sport=args.sport,
         player_confidence=args.player_confidence,
+        sam_version=args.sam_version,
     )
 
 
-def _create_result_dir(input_video: str | Path, sport: str) -> Path:
+def _create_result_dir(input_video: str | Path, sport: str, sam_version: str) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     clip_name = _slug(Path(input_video).stem)
-    result_path = Path("results") / f"{timestamp}-{sport}-{clip_name}"
+    sam_name = _slug(sam_version)
+    result_path = Path("results") / f"{timestamp}-{sport}-{sam_name}-{clip_name}"
     result_path.mkdir(parents=True, exist_ok=False)
     return result_path
 
