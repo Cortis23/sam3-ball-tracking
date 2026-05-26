@@ -1,13 +1,12 @@
 import contextlib
 import io
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 from utils.weights import resolve_sam3_checkpoint
 
 _sam3_predictors: dict[str, Any] = {}
 _sam3_image_model: Optional[Any] = None
-_vitpose_model: Optional[Tuple[Any, Any]] = None
 
 
 def _sam3_bpe_path() -> str:
@@ -52,12 +51,3 @@ def get_sam3_image_model():
         )
         print("SAM3 image model loaded.")
     return _sam3_image_model
-
-
-def get_vitpose_model():
-    global _vitpose_model
-    if _vitpose_model is None:
-        from vision.vitpose.loader import load_vitpose_model
-
-        _vitpose_model = load_vitpose_model()
-    return _vitpose_model

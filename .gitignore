@@ -9,6 +9,7 @@ __pycache__/
 weights/
 runs/
 outputs/
+results/
 *.mp4
 *.mov
 *.mkv
@@ -19,10 +20,6 @@ outputs/
 
 # Keep vendored source, skip generated metadata
 *.egg-info/
-
-# Result videos may be committed; compressed artifacts stay ignored.
-!results/
-!results/**/*.mp4
 
 # Curated example videos are part of the public repo.
 !examples/

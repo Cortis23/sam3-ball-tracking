@@ -67,7 +67,7 @@ uv run sam3-ball-track examples/videos/tennis/clip-3.mp4 --sport tennis
 
 ## Outputs
 
-Each run writes one directory under `results/` with the form `results/<timestamp>-<sport>-<sam-version>-<clip-name>/`. That directory contains both annotated videos and compressed debug artifacts.
+Each run writes one ignored directory under `results/` with the form `results/<timestamp>-<sport>-<sam-version>-<clip-name>/`. That directory contains both annotated videos and compressed debug artifacts.
 
 ```text
 ball-in-play.mp4         selected ball-in-play track
