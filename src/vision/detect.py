@@ -23,7 +23,9 @@ def detect(
     detections: Dict[int, np.ndarray] = {}
     masks: Optional[Dict[int, List[dict]]] = {} if keep_masks else None
 
-    with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+    _device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+    _dtype = torch.float16 if _device == "mps" else torch.bfloat16
+    with torch.inference_mode(), torch.autocast(_device, dtype=_dtype):
         for frame_idx in tqdm(range(video.num_frames), desc=f"SAM3 detect '{prompt}'"):
             rgb = video.decoder[frame_idx].numpy()
             image = Image.fromarray(rgb)

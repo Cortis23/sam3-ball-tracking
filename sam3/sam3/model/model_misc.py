@@ -390,9 +390,10 @@ def multi_head_attention_forward(
                 q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2)
             ).transpose(1, 2)
         else:
-            torch.backends.cuda.enable_flash_sdp(True)
-            torch.backends.cuda.enable_math_sdp(True)
-            torch.backends.cuda.enable_mem_efficient_sdp(True)
+            if torch.cuda.is_available():
+                torch.backends.cuda.enable_flash_sdp(True)
+                torch.backends.cuda.enable_math_sdp(True)
+                torch.backends.cuda.enable_mem_efficient_sdp(True)
 
             attn_output = F.scaled_dot_product_attention(
                 q, k, v, attn_mask, dropout_p, is_causal

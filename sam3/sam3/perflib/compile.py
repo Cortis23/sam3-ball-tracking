@@ -43,7 +43,7 @@ recursive_clone = recursive_fn_factory(torch.clone)
 
 def clone_output_wrapper(f):
     """
-    Clone the CUDA output tensors of a function to avoid in-place operations.
+    Clone the GPU output tensors of a function to avoid in-place operations.
     Uses tree_map_only (C-optimized pytree traversal) matching onevision's pattern.
     Requires NestedTensor to be registered as a pytree node (see data_misc.py).
     """
@@ -52,7 +52,9 @@ def clone_output_wrapper(f):
     def wrapped(*args, **kwargs):
         outputs = f(*args, **kwargs)
         return tree_map_only(
-            torch.Tensor, lambda t: t.clone() if t.is_cuda else t, outputs
+            torch.Tensor,
+            lambda t: t.clone() if t.is_cuda or (hasattr(t, "device") and t.device.type == "mps") else t,
+            outputs,
         )
 
     return wrapped

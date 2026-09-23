@@ -29,6 +29,9 @@ from PIL import Image, ImageDraw
 
 
 def max_memory_allocated():
+    if not torch.cuda.is_available():
+        print("max_memory_allocated: N/A (no CUDA device)")
+        return
     max_memory_allocated_bytes = torch.cuda.max_memory_allocated()
     _, total_memory = torch.cuda.mem_get_info()
     max_memory_allocated_percentage = int(
@@ -134,7 +137,7 @@ def main_loop(model_wrapper, session_id, text_prompt):
         {"type": "propagate_in_video", "session_id": session_id}
     ):
         frame_count += 1
-    torch.cuda.synchronize()
+    torch.cuda.synchronize() if torch.cuda.is_available() else (torch.mps.synchronize() if torch.backends.mps.is_available() else None)
     t1 = time.perf_counter()
 
     if frame_count > 0:
@@ -158,7 +161,9 @@ def run_test(
     do_compile: bool = True,
     checkpoint_path: str = None,
 ) -> float:
-    torch.autocast(device_type="cuda", dtype=torch.bfloat16).__enter__()
+    _device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+    _dtype = torch.float16 if _device == "mps" else torch.bfloat16
+    torch.autocast(device_type=_device, dtype=_dtype).__enter__()
 
     if synthesize_data:
         synthesize_video_data(
@@ -224,8 +229,9 @@ def run_test(
 
     NUM_TRIES = 10
     for i in range(NUM_TRIES):
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats()
         print(f"\nTiming round {i + 1} ")
         fps = max(
             main_loop(

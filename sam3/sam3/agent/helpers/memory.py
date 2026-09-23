@@ -73,7 +73,10 @@ def retry_if_cuda_oom(func):
             return func(*args, **kwargs)
 
         # Clear cache and retry
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        elif torch.backends.mps.is_available():
+            torch.mps.empty_cache()
         with _ignore_torch_cuda_oom():
             return func(*args, **kwargs)
 

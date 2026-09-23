@@ -33,7 +33,7 @@ SAM3_COLLECTIVE_OP_TIMEOUT_SEC = int(os.getenv("SAM3_COLLECTIVE_OP_TIMEOUT_SEC",
 
 logger = get_logger(__name__)
 
-if torch.cuda.get_device_properties(0).major >= 8:
+if torch.cuda.is_available() and torch.cuda.get_device_properties(0).major >= 8:
     # turn on tfloat32 for Ampere GPUs (https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices)
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
@@ -167,8 +167,10 @@ class Sam3MultiplexTrackerPredictor(nn.Module):
         self.model = model
         self.per_obj_inference = per_obj_inference
         self.fill_hole_area = fill_hole_area
-        # use bfloat16 inference for Flash Attention kernel
-        self.bf16_context = torch.autocast(device_type="cuda", dtype=torch.bfloat16)
+        # use float16/bfloat16 inference for Flash Attention kernel
+        _device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+        _dtype = torch.float16 if _device == "mps" else torch.bfloat16
+        self.bf16_context = torch.autocast(device_type=_device, dtype=_dtype)
         self.bf16_context.__enter__()  # keep using for the entire model process
 
     def __getattr__(self, name):
@@ -2853,6 +2855,8 @@ class Sam3MultiplexPredictorWrapper(Sam3MultiplexTrackerPredictor):
         self.is_multiplex = is_multiplex
         self.is_multiplex_dynamic = is_multiplex_dynamic
 
-        # use bfloat16 inference for Flash Attention kernel
-        self.bf16_context = torch.autocast(device_type="cuda", dtype=torch.bfloat16)
+        # use float16/bfloat16 inference for Flash Attention kernel
+        _device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+        _dtype = torch.float16 if _device == "mps" else torch.bfloat16
+        self.bf16_context = torch.autocast(device_type=_device, dtype=_dtype)
         self.bf16_context.__enter__()

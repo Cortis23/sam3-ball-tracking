@@ -193,13 +193,15 @@ def convert_to_distributed_tensor(tensor: torch.Tensor) -> Tuple[torch.Tensor, s
     tensor is on the GPU. This helper function converts to the correct
     device and returns the tensor + original device.
     """
-    orig_device = "cpu" if not tensor.is_cuda else "gpu"
+    orig_device = "cpu" if tensor.device.type == "cpu" else "gpu"
     if (
         torch.distributed.is_available()
         and torch.distributed.get_backend() == torch.distributed.Backend.NCCL
-        and not tensor.is_cuda
+        and tensor.device.type == "cpu"
     ):
-        tensor = tensor.cuda()
+        from sam3.device import get_device
+        device = get_device
+        tensor = tensor.to(device)
     return (tensor, orig_device)
 
 
@@ -208,7 +210,7 @@ def convert_to_normal_tensor(tensor: torch.Tensor, orig_device: str) -> torch.Te
     For some backends, such as NCCL, communication only works if the
     tensor is on the GPU. This converts the tensor back to original device.
     """
-    if tensor.is_cuda and orig_device == "cpu":
+    if tensor.device.type in ("cuda", "mps") and orig_device == "cpu":
         tensor = tensor.cpu()
     return tensor
 

@@ -57,6 +57,7 @@ def _setup_tf32() -> None:
         if device_props.major >= 8:
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
+    # MPS does not support TF32; skip silently on Apple Silicon
 
 
 _setup_tf32()
@@ -562,8 +563,10 @@ def _load_checkpoint(model, checkpoint_path):
 
 def _setup_device_and_mode(model, device, eval_mode):
     """Setup model device and evaluation mode."""
-    if device == "cuda":
-        model = model.cuda()
+    if device in ("cuda", "mps") or (isinstance(device, str) and device not in ("cpu",)):
+        model = model.to(device)
+    elif hasattr(device, "type"):
+        model = model.to(device)
     if eval_mode:
         model.eval()
     return model
@@ -572,7 +575,7 @@ def _setup_device_and_mode(model, device, eval_mode):
 def build_sam3_image_model(
     checkpoint_path: str,
     bpe_path=None,
-    device="cuda" if torch.cuda.is_available() else "cpu",
+    device="mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu"),
     eval_mode=True,
     enable_segmentation=True,
     enable_inst_interactivity=False,
@@ -653,7 +656,7 @@ def build_sam3_video_model(
     geo_encoder_use_img_cross_attn: bool = True,
     strict_state_dict_loading: bool = True,
     apply_temporal_disambiguation: bool = True,
-    device="cuda" if torch.cuda.is_available() else "cpu",
+    device="mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu"),
     compile=False,
 ) -> Sam3VideoInferenceWithInstanceInteractivity:
     """
@@ -908,7 +911,7 @@ def build_sam3_multiplex_video_model(
     use_fa3: bool = False,
     use_rope_real: bool = False,
     strict_state_dict_loading: bool = True,
-    device="cuda" if torch.cuda.is_available() else "cpu",
+    device="mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu"),
     compile=False,
 ):
     """
@@ -1185,7 +1188,8 @@ def build_sam3_multiplex_video_predictor(
             f"Unexpected keys ({len(unexpected_keys)}): {unexpected_keys[:10]}..."
         )
 
-    demo_model.cuda().eval()
+    _device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+    demo_model.to(_device).eval()
 
     # Wrap in predictor
     predictor = Sam3MultiplexVideoPredictor(

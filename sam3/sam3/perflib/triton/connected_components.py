@@ -408,7 +408,8 @@ def connected_components_triton(input_tensor: torch.Tensor):
             - A BxHxW tensor with the size of the connected component for each pixel.
     """
     assert input_tensor.is_cuda and input_tensor.is_contiguous(), (
-        "Input tensor must be a contiguous CUDA tensor."
+        "Input tensor must be a contiguous CUDA tensor. "
+        "This Triton kernel is CUDA-only and cannot run on MPS."
     )
     out_shape = input_tensor.shape
     if input_tensor.dim() == 4 and input_tensor.shape[1] == 1:

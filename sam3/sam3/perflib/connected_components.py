@@ -71,7 +71,7 @@ def connected_components(input_tensor: torch.Tensor):
         "Input tensor must be (B, H, W) or (B, 1, H, W)."
     )
 
-    if input_tensor.is_cuda:
+    if input_tensor.is_cuda or input_tensor.device.type == "mps":
         if HAS_CC_TORCH:
             return get_connected_components(input_tensor.to(torch.uint8))
         else:

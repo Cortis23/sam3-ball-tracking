@@ -597,17 +597,75 @@ class SequenceGeometryEncoder(nn.Module):
 
         if self.points_pool_project is not None:
             # points are [Num_points, bs, 2], normalized in [0, 1]
-            # the grid needs to be [Bs, H_out, W_out, 2] normalized in [-1,1]
-            # Will take H_out = num_points, w_out = 1
-            grid = points.transpose(0, 1).unsqueeze(2)
-            # re normalize to [-1, 1]
-            grid = (grid * 2) - 1
-            sampled = torch.nn.functional.grid_sample(
-                img_feats, grid, align_corners=False
-            )
-            assert list(sampled.shape) == [bs, self.d_model, n_points, 1]
-            sampled = sampled.squeeze(-1).permute(2, 0, 1)
+            #
+            # MPS grid_sample cannot handle an empty output dimension.
+            # When n_points == 0, construct the expected empty tensor
+            # directly instead of calling grid_sample.
+            if n_points == 0:
+                sampled = torch.empty(
+                    (0, bs, self.d_model),
+                    dtype=img_feats.dtype,
+                    device=img_feats.device,
+                )
+            else:
+                # grid_sample expects:
+                # [Bs, H_out, W_out, 2], normalized to [-1, 1]
+                grid = points.transpose(0, 1).unsqueeze(2)
+                grid = (grid * 2) - 1
+
+                sampled = torch.nn.functional.grid_sample(
+                    img_feats,
+                    grid,
+                    align_corners=False,
+                )
+
+                assert list(sampled.shape) == [
+                    bs,
+                    self.d_model,
+                    n_points,
+                    1,
+                ]
+
+                sampled = sampled.squeeze(-1).permute(2, 0, 1)
+
             proj = self.points_pool_project(sampled)
+
+            if points_embed is None:
+                points_embed = proj
+            else:
+                points_embed = points_embed + proj
+
+            if self.points_pos_enc_project is not None:
+                x, y = points.unbind(-1)
+                enc_x, enc_y = self.pos_enc._encode_xy(
+                    x.flatten(),
+                    y.flatten(),
+                )
+                enc_x = enc_x.view(
+                    n_points,
+                    bs,
+                    enc_x.shape[-1],
+                )
+                enc_y = enc_y.view(
+                    n_points,
+                    bs,
+                    enc_y.shape[-1],
+                )
+                enc = torch.cat([enc_x, enc_y], -1)
+
+                proj = self.points_pos_enc_project(enc)
+
+                if points_embed is None:
+                    points_embed = proj
+                else:
+                    points_embed = points_embed + proj
+
+            type_embed = self.label_embed(points_labels.long())
+
+            return type_embed + points_embed, points_mask
+
+            proj = self.points_pool_project(sampled)
+
             if points_embed is None:
                 points_embed = proj
             else:
@@ -644,8 +702,11 @@ class SequenceGeometryEncoder(nn.Module):
             # boxes are [Num_boxes, bs, 4], normalized in [0, 1]
             # We need to denormalize, and convert to [x, y, x, y]
             boxes_xyxy = box_cxcywh_to_xyxy(boxes)
-            scale = torch.tensor([W, H, W, H], dtype=boxes_xyxy.dtype)
-            scale = scale.pin_memory().to(device=boxes_xyxy.device, non_blocking=True)
+            scale = torch.tensor(
+                [W, H, W, H],
+                dtype=boxes_xyxy.dtype,
+                device=boxes_xyxy.device,
+            )
             scale = scale.view(1, 1, 4)
             boxes_xyxy = boxes_xyxy * scale
             sampled = torchvision.ops.roi_align(

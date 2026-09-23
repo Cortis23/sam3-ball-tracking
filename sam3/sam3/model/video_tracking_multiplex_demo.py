@@ -2634,7 +2634,7 @@ class VideoTrackingMultiplexDemo(VideoTrackingDynamicMultiplex):
         )
         if backbone_out is None:
             # Cache miss -- we will run inference on a single image
-            image = inference_state["images"][frame_idx].cuda().float().unsqueeze(0)
+            image = inference_state["images"][frame_idx].to(inference_state.get("device", next(self.parameters()).device)).float().unsqueeze(0)
             # TODO: We should optimize this because we don't always need all three outs
             backbone_out = self.forward_image(
                 NestedTensor(tensors=image, mask=None),
@@ -2814,7 +2814,7 @@ class VideoTrackingMultiplexDemo(VideoTrackingDynamicMultiplex):
         if current_out.get("maskmem_features") is not None:
             maskmem_features = current_out["maskmem_features"]
             maskmem_features = maskmem_features.to(
-                device=storage_device, dtype=torch.bfloat16, non_blocking=True
+                device=storage_device, dtype=torch.float16 if not torch.cuda.is_available() else torch.bfloat16, non_blocking=True
             )
         else:
             maskmem_features = None
@@ -2913,7 +2913,9 @@ class VideoTrackingMultiplexDemo(VideoTrackingDynamicMultiplex):
 
         # optionally offload the output to CPU memory to save GPU space
         storage_device = inference_state["storage_device"]
-        maskmem_features = maskmem_features.to(torch.bfloat16)
+        maskmem_features = maskmem_features.to(
+            torch.float16 if not torch.cuda.is_available() else torch.bfloat16
+        )
         maskmem_features = maskmem_features.to(storage_device, non_blocking=True)
         # "maskmem_pos_enc" is the same across frames, so we only need to store one copy of it
         maskmem_pos_enc = self._get_maskmem_pos_enc(
@@ -3199,7 +3201,7 @@ class VideoTrackingMultiplexDemo(VideoTrackingDynamicMultiplex):
                 obj_output_dict["non_cond_frame_outputs"].pop(t, None)
 
     @torch.inference_mode()
-    @torch.autocast(device_type="cuda", dtype=torch.bfloat16)
+    @torch.autocast(device_type="mps" if torch.backends.mps.is_available() else "cuda", dtype=torch.float16 if torch.backends.mps.is_available() else torch.bfloat16)
     def warm_up_compilation(
         self, offload_video_to_cpu=False, offload_state_to_cpu=False
     ):

@@ -121,8 +121,10 @@ class SAM3VLBackbone(nn.Module):
         return output
 
     def forward_text(
-        self, captions, input_boxes=None, additional_text=None, device="cuda"
+        self, captions, input_boxes=None, additional_text=None, device=None
     ):
+        if device is None:
+            device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
         return activation_ckpt_wrapper(self._forward_text_no_ack_ckpt)(
             captions=captions,
             input_boxes=input_boxes,
@@ -136,8 +138,10 @@ class SAM3VLBackbone(nn.Module):
         captions,
         input_boxes=None,
         additional_text=None,
-        device="cuda",
+        device=None,
     ):
+        if device is None:
+            device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
         output = {}
 
         # Forward through text_encoder
@@ -324,8 +328,10 @@ class VisionOnly(nn.Module):
         captions,
         input_boxes=None,
         additional_text=None,
-        device="cuda",
+        device=None,
     ):
+        if device is None:
+            device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
         bs = len(captions)
         output = {
             "language_features": torch.zeros((0, bs, self.n_features), device=device),

@@ -61,7 +61,7 @@ def generic_nms(
     assert ious.dim() == 2 and ious.size(0) == ious.size(1)
     assert scores.dim() == 1 and scores.size(0) == ious.size(0)
 
-    if ious.is_cuda:
+    if ious.is_cuda or ious.device.type == "mps":
         if GENERIC_NMS_AVAILABLE:
             return generic_nms_cuda(ious, scores, iou_threshold, use_iou_matrix=True)
         else:

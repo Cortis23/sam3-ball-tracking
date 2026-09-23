@@ -12,6 +12,7 @@ PlayerMasks = Dict[int, List[dict]]
 def detect_players(
     video: Video,
     confidence_threshold: float = 0.5,
+    max_frames: Optional[int] = None,
 ) -> tuple[PlayerBBoxes, PlayerMasks]:
     """Return SAM3 player boxes and cropped player masks using the pipeline artifact shape."""
     detections, masks = detect(

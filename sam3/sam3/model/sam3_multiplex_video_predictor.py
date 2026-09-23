@@ -45,10 +45,13 @@ class Sam3MultiplexVideoPredictor(Sam3BasePredictor):
         self.async_loading_frames = async_loading_frames
 
         # turn on tfloat32 for Ampere GPUs
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
-        # use bfloat16 inference for Flash Attention kernel
-        self.bf16_context = torch.autocast(device_type="cuda", dtype=torch.bfloat16)
+        if torch.cuda.is_available():
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+        # use float16/bfloat16 inference for Flash Attention kernel
+        _device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+        _dtype = torch.float16 if _device == "mps" else torch.bfloat16
+        self.bf16_context = torch.autocast(device_type=_device, dtype=_dtype)
         self.bf16_context.__enter__()
 
         if warm_up:

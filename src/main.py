@@ -55,6 +55,7 @@ def run_tracking(
     sport: str,
     player_confidence: float = 0.5,
     sam_version: str = "sam3",
+    max_frames: int | None = None,
 ) -> TrackingResult:
     sport_module = _sport_module(sport)
     video = Video.open(input_video)
@@ -71,7 +72,7 @@ def run_tracking(
     print(f"Result dir: {result_path}")
 
     print("\nStep 1/4: detecting players")
-    player_bboxes, player_masks = detect_players(video, confidence_threshold=player_confidence)
+    player_bboxes, player_masks = detect_players(video, confidence_threshold=player_confidence. max_frames=max_frames,)
     save_artifact(player_bboxes, result_path / "player-bboxes.pkl.zst")
     save_artifact(player_masks, result_path / "player-masks.pkl.zst")
 
@@ -136,6 +137,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="sam3",
         help="SAM video tracker version to use for ball candidates.",
     )
+    parser.add_argument(
+        "--max-frames",
+        type=int,
+        default=None,
+        help="Maximum number of frames for player detection (debug/profiling).",
+    )
     return parser
 
 
@@ -145,6 +152,7 @@ def main() -> None:
         input_video=args.input,
         sport=args.sport,
         sam_version=args.sam_version,
+        max_frames=args.max_frames,
     )
 
 

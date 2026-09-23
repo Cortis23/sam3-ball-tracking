@@ -152,11 +152,29 @@ def track_ball_candidates(
         model.drift_kill_fn = should_drift_kill
     model.hotstart_delay = 0
 
+    if torch.backends.mps.is_available():
+        _device = "mps"
+        _dtype = torch.float16
+    elif torch.cuda.is_available():
+        _device = "cuda"
+        _dtype = torch.bfloat16
+    else:
+        _device = "cpu"
+        _dtype = torch.float32
+
     with (
         LazyFrameLoader(video, segment, model.image_size) as frames,
         torch.inference_mode(),
-        torch.autocast("cuda", dtype=torch.bfloat16),
+        torch.autocast(
+            device_type=_device,
+            dtype=_dtype,
+            enabled=_device != "cpu",
+        ),
     ):
+    #    LazyFrameLoader(video, segment, model.image_size) as frames,
+    #    torch.inference_mode(),
+    #    torch.autocast("cuda", dtype=torch.bfloat16),
+    #):
         inference_state = model.init_state(resource_path=frames)
         model.add_prompt(inference_state, frame_idx=0, text_str=prompt)
 

@@ -50,7 +50,6 @@ class Sam3VideoPredictor(Sam3BasePredictor):
                 apply_temporal_disambiguation=apply_temporal_disambiguation,
                 compile=compile,
             )
-            .cuda()
             .eval()
         )
 
@@ -79,29 +78,39 @@ class Sam3VideoPredictor(Sam3BasePredictor):
             nf = s["state"]["num_frames"]
             live_session_strs.append(f"'{sid}' ({nf} frames)")
         joined = ", ".join(live_session_strs)
-        mem_alloc = torch.cuda.memory_allocated() // 1024**2
-        mem_res = torch.cuda.memory_reserved() // 1024**2
-        max_alloc = torch.cuda.max_memory_allocated() // 1024**2
-        max_res = torch.cuda.max_memory_reserved() // 1024**2
-        return (
-            f"live sessions: [{joined}], GPU memory: "
-            f"{mem_alloc} MiB used and {mem_res} MiB reserved"
-            f" (max over time: {max_alloc} MiB used and {max_res} MiB reserved)"
-        )
+        if torch.cuda.is_available():
+            mem_alloc = torch.cuda.memory_allocated() // 1024**2
+            mem_res = torch.cuda.memory_reserved() // 1024**2
+            max_alloc = torch.cuda.max_memory_allocated() // 1024**2
+            max_res = torch.cuda.max_memory_reserved() // 1024**2
+            mem_str = (
+                f"GPU memory: {mem_alloc} MiB used and {mem_res} MiB reserved"
+                f" (max over time: {max_alloc} MiB used and {max_res} MiB reserved)"
+            )
+        elif torch.backends.mps.is_available():
+            mem_str = "GPU memory: N/A (MPS device)"
+        else:
+            mem_str = "GPU memory: N/A (CPU only)"
+        return f"live sessions: [{joined}], {mem_str}"
 
     def _get_torch_and_gpu_properties(self):
         """Get a string for PyTorch and GPU properties."""
-        return (
-            f"torch: {torch.__version__} with CUDA arch {torch.cuda.get_arch_list()}, "
-            f"GPU device: {torch.cuda.get_device_properties(torch.cuda.current_device())}"
-        )
+        if torch.cuda.is_available():
+            return (
+                f"torch: {torch.__version__} with CUDA arch {torch.cuda.get_arch_list()}, "
+                f"GPU device: {torch.cuda.get_device_properties(torch.cuda.current_device())}"
+            )
+        elif torch.backends.mps.is_available():
+            return f"torch: {torch.__version__}, device: MPS (Apple Silicon)"
+        else:
+            return f"torch: {torch.__version__}, device: CPU"
 
 
 class Sam3VideoPredictorMultiGPU(Sam3VideoPredictor):
     def __init__(self, *model_args, gpus_to_use=None, **model_kwargs):
         if gpus_to_use is None:
             # if not specified, use only the current GPU by default
-            gpus_to_use = [torch.cuda.current_device()]
+            gpus_to_use = [torch.cuda.current_device()] if torch.cuda.is_available() else [0]
 
         IS_MAIN_PROCESS = os.getenv("IS_MAIN_PROCESS", "1") == "1"
         if IS_MAIN_PROCESS:
